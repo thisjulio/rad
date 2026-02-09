@@ -25,8 +25,11 @@ Para identificar a tarefa atual, siga esta ordem de verificação:
 - Escolha a próxima tarefa em `docs/tasks/` (ex: `001-check-user-namespaces.md`).
 - Crie a branch: `git checkout -b task/001-user-ns`.
 
-### 2. Desenvolvimento
-- Realize commits atômicos: `git commit -m "task(001): implement proc check logic"`.
+### 2. Desenvolvimento (TDD Flow)
+- **Passo 2.1 (Red)**: Adicione um teste em `src/lib.rs` ou `tests/` que descreva o comportamento esperado da tarefa.
+- **Passo 2.2 (Green)**: Implemente a lógica necessária. Execute `cargo test` para validar.
+- **Passo 2.3 (Refactor)**: Limpe o código, melhore nomes e documentação.
+- **Commit**: `git commit -m "task(NNN): implement feature X with tests"`.
 - Mantenha a branch focada **apenas** no escopo da tarefa.
 
 ### 3. Verificação

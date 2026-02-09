@@ -114,6 +114,21 @@ Para garantir que múltiplos agentes (ou você e eu) saibam o progresso sem ferr
 
 ---
 
+## Ciclo de Desenvolvimento TDD (Test-Driven Development)
+
+Para garantir a robustez do runner, o desenvolvimento deve seguir o ciclo TDD:
+
+1. **Red**: Escrever um teste unitário ou de integração que falhe para a nova funcionalidade/correção.
+2. **Green**: Escrever o código mínimo necessário para fazer o teste passar.
+3. **Refactor**: Melhorar o código mantendo os testes passando.
+
+**Regras para o Agente**:
+- Sempre verificar se a funcionalidade pode ser testada isoladamente (unit test) ou se exige o ambiente Linux (integration test).
+- Testes que exigem capacidades de kernel (namespaces, binderfs) devem ser marcados com `#[ignore]` ou usar mocks quando possível para rodar em ambientes de CI limitados.
+- Cada commit de implementação deve, idealmente, ser acompanhado por seu respectivo teste.
+
+---
+
 ## Estrutura sugerida do repositório
 
 /crates
