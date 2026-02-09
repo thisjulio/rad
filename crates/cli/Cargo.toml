@@ -1,0 +1,18 @@
+[package]
+name = "cli"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+clap.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+core = { path = "../core" }
+apk = { path = "../apk" }
+sandbox = { path = "../sandbox" }
+adb = { path = "../adb" }
