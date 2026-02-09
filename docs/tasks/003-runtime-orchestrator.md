@@ -7,11 +7,11 @@ Priority: high
 Implement the core logic to create a prefix and setup the sandbox using Linux namespaces.
 
 ## Todos
-- [ ] Define `Prefix` struct in `crates/core`
-- [ ] Implement prefix creation (directory structure: `/data`, `/system`, `/dev`, etc.)
-- [ ] Implement `sandbox::setup` using `nix` to enter new namespaces (user, mount, pid)
+- [x] Define `Prefix` struct in `crates/core`
+- [x] Implement prefix creation (directory structure: `/data`, `/system`, `/dev`, etc.)
+- [x] Implement `sandbox::setup` using `nix` to enter new namespaces (user, mount, pid)
 - [ ] Implement basic bind mounting of a "payload" directory into the prefix
-- [ ] Add `doctor` check for required capabilities/privileges
+- [x] Add `doctor` check for required capabilities/privileges (OverlayFS, etc.)
 
 ## Context
 - `AGENTS.md` - Agent: Runtime Orchestrator & Kernel/Sandbox
