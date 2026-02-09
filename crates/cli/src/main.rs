@@ -3,6 +3,7 @@ use anyhow::Result;
 use tracing_subscriber::EnvFilter;
 use core::doctor;
 use apk::ApkInspector;
+use core::prefix::Prefix;
 
 #[derive(Parser)]
 #[command(name = "run-android-app")]
@@ -69,6 +70,12 @@ async fn main() -> Result<()> {
                         println!("   ℹ️  No native libs found (likely Java/Kotlin only).");
                     }
                     
+                    println!("\nInitializing prefix for {}...", info.package_name);
+                    let prefix_path = std::env::current_dir()?.join("prefixes").join(&info.package_name);
+                    let prefix = Prefix::new(&prefix_path);
+                    prefix.initialize()?;
+                    println!("✅ Prefix initialized at: {}", prefix_path.display());
+
                     println!("\nStarting runtime orchestrator (placeholder)...");
                 }
                 Err(e) => {

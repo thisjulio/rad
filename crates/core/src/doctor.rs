@@ -16,7 +16,32 @@ pub fn run_doctor() -> Vec<DoctorIssue> {
     // Check Namespaces
     issues.push(check_namespaces());
 
+    // Check OverlayFS
+    issues.push(check_overlayfs());
+
     issues
+}
+
+fn check_overlayfs() -> DoctorIssue {
+    let status = Path::new("/proc/filesystems").exists() && {
+        let content = std::fs::read_to_string("/proc/filesystems").unwrap_or_default();
+        content.contains("overlay")
+    };
+
+    DoctorIssue {
+        name: "OverlayFS".to_string(),
+        status,
+        description: if status {
+            "OverlayFS is supported by the kernel.".to_string()
+        } else {
+            "OverlayFS is NOT supported. Useful for efficient prefix management.".to_string()
+        },
+        fix: if !status {
+            Some("Ensure overlay module is loaded (`modprobe overlay`).".to_string())
+        } else {
+            None
+        },
+    }
 }
 
 fn check_binder() -> DoctorIssue {
