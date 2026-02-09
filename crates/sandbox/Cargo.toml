@@ -11,3 +11,6 @@ nix.workspace = true
 rustix.workspace = true
 anyhow.workspace = true
 thiserror.workspace = true
+
+[dev-dependencies]
+tempfile = "3.25.0"
