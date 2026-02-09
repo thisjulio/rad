@@ -26,6 +26,7 @@ impl Prefix {
             "sys",
             "tmp",
             "apex",
+            "logs",
         ];
 
         for dir in dirs {
@@ -35,6 +36,19 @@ impl Prefix {
             }
         }
 
+        Ok(())
+    }
+
+    pub fn reset(&self) -> Result<()> {
+        let data_dir = self.root.join("data");
+        if data_dir.exists() {
+            fs::remove_dir_all(&data_dir)?;
+        }
+        let logs_dir = self.root.join("logs");
+        if logs_dir.exists() {
+            fs::remove_dir_all(&logs_dir)?;
+        }
+        self.initialize()?;
         Ok(())
     }
 
@@ -49,7 +63,6 @@ impl Prefix {
         println!("   📥 Copied APK to {}", target_apk.display());
 
         // 2. Extract libs
-        // For the MVP, we pick the first supported ABI that matches host or just x86_64 if available
         let abi = info.supported_abis.iter()
             .find(|a| matches!(a, Abi::X86_64))
             .or_else(|| info.supported_abis.first())
@@ -72,20 +85,28 @@ impl Prefix {
 
     /// Orchestrates the execution of a command within the prefix sandbox
     pub fn run_in_sandbox(&self, payload_path: &Path, _command: &str) -> Result<()> {
+        // We open the log file BEFORE entering namespaces to ensure we can write to it
+        // Or we can do it after if the path is reachable in the sandbox
+        let log_path = self.root.join("logs/app.log");
+        let log_file = fs::File::create(&log_path)?;
+
         println!("Entering sandbox namespaces...");
         sandbox::enter_namespaces()?;
+
+        println!("Redirecting output to {}...", log_path.display());
+        sandbox::redirect_stdio(&log_file)?;
 
         println!("Setting up mounts...");
         self.mount_runtime(payload_path)?;
 
         println!("Sandbox ready. (Execution placeholder)");
-        // In a real implementation, we would pivot_root and exec the command
+        // Since we redirected stdout, the user won't see this in the terminal anymore
+        // unless we use a supervisor or don't redirect yet.
         
         Ok(())
     }
 
     fn mount_runtime(&self, payload_path: &Path) -> Result<()> {
-        // Bind mount the system partition from payload to prefix/system
         let system_source = payload_path.join("system");
         let system_target = self.root.join("system");
         

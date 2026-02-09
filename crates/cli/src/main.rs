@@ -25,10 +25,22 @@ enum Commands {
         #[arg(long)]
         force: bool,
     },
+    /// Reset the environment for a specific package
+    Reset {
+        /// Package name
+        package: String,
+    },
+    /// Show logs for a specific package
+    Logs {
+        /// Package name
+        package: String,
+        /// Follow log output
+        #[arg(short, long)]
+        follow: bool,
+    },
 }
 
 fn main() -> Result<()> {
-    // Initialize logging
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env().add_directive(tracing::Level::INFO.into()))
         .init();
@@ -55,10 +67,9 @@ fn main() -> Result<()> {
             println!("   📦 Package: {}", info.package_name);
             println!("   🏗️  ABIs: {:?}", info.supported_abis.iter().map(|a| a.as_str()).collect::<Vec<_>>());
             
-            let prefix_path = std::env::current_dir()?.join("prefixes").join(&info.package_name);
-            let prefix = Prefix::new(&prefix_path);
+            let prefix = get_prefix(&info.package_name)?;
             prefix.initialize()?;
-            println!("✅ Prefix initialized at: {}", prefix_path.display());
+            println!("✅ Prefix initialized at: {}", prefix.root.display());
 
             println!("Installing APK to prefix...");
             prefix.install_apk(std::path::Path::new(&apk_path), &info)?;
@@ -72,14 +83,35 @@ fn main() -> Result<()> {
             println!("\n🚀 Launching sandbox...");
             if let Err(e) = prefix.run_in_sandbox(&payload_path, "init") {
                 eprintln!("❌ Sandbox failure: {}", e);
-                eprintln!("   Note: This often requires User Namespaces. Multi-threading can also block unshare.");
             } else {
                 println!("✨ Sandbox session finished.");
             }
         }
+        Commands::Reset { package } => {
+            let prefix = get_prefix(&package)?;
+            println!("Resetting prefix for {}...", package);
+            prefix.reset()?;
+            println!("✅ Prefix reset.");
+        }
+        Commands::Logs { package, follow: _ } => {
+            let prefix = get_prefix(&package)?;
+            let log_file = prefix.root.join("logs/app.log");
+            if !log_file.exists() {
+                println!("ℹ️ No logs found for {}.", package);
+                return Ok(());
+            }
+            println!("Showing logs for {}:", package);
+            let content = std::fs::read_to_string(log_file)?;
+            println!("{}", content);
+        }
     }
 
     Ok(())
+}
+
+fn get_prefix(package: &str) -> Result<Prefix> {
+    let prefix_path = std::env::current_dir()?.join("prefixes").join(package);
+    Ok(Prefix::new(prefix_path))
 }
 
 fn run_doctor() {

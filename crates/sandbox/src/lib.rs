@@ -2,23 +2,17 @@ use std::path::Path;
 use anyhow::Result;
 use nix::sched::{unshare, CloneFlags};
 use nix::mount::{mount, MsFlags};
+use std::os::unix::io::AsRawFd;
+use nix::libc;
 
 pub struct SandboxConfig {
     pub rootfs: std::path::PathBuf,
 }
 
 pub fn enter_namespaces() -> Result<()> {
-    // Attempt to unshare User and Mount namespaces first, as they are most critical for mounting
-    let mut flags = CloneFlags::CLONE_NEWUSER | CloneFlags::CLONE_NEWNS;
-    
-    // We can also try NEWPID, but it might require more setup (forking)
-    // flags |= CloneFlags::CLONE_NEWPID;
-
+    // Attempt to unshare User and Mount namespaces first
+    let flags = CloneFlags::CLONE_NEWUSER | CloneFlags::CLONE_NEWNS;
     unshare(flags)?;
-    
-    // Note: In a real "rootless" setup, we must map UID/GID here.
-    // Without mapping, we are "nobody" in the new namespace, which might limit mount capabilities.
-    
     Ok(())
 }
 
@@ -41,5 +35,18 @@ pub fn mount_tmpfs<P: AsRef<Path>>(target: P) -> Result<()> {
         MsFlags::empty(),
         None::<&Path>,
     )?;
+    Ok(())
+}
+
+pub fn redirect_stdio(log_file: &std::fs::File) -> Result<()> {
+    let fd = log_file.as_raw_fd();
+    unsafe {
+        if libc::dup2(fd, libc::STDOUT_FILENO) == -1 {
+            return Err(anyhow::anyhow!("Failed to redirect stdout"));
+        }
+        if libc::dup2(fd, libc::STDERR_FILENO) == -1 {
+            return Err(anyhow::anyhow!("Failed to redirect stderr"));
+        }
+    }
     Ok(())
 }
