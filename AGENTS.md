@@ -92,6 +92,28 @@ A proposta é **single-binary** (um executável) que prepara um ambiente Android
 
 ---
 
+## Protocolo de Orquestração de Tarefas (Git-Based)
+
+Para garantir que múltiplos agentes (ou você e eu) saibam o progresso sem ferramentas externas:
+
+1. **Estado WIP (Work In Progress)**:
+   - A branch atual define a tarefa ativa: `task/NNN-slug` (ex: `task/001-user-ns`).
+   - Se a branch for `master` ou `main`, nenhuma tarefa técnica está sendo executada.
+2. **Início de Tarefa**:
+   - Comando: `git checkout -b task/NNN-slug`.
+   - O agente deve atualizar o arquivo correspondente em `docs/tasks/NNN-*.md` marcando o status como em andamento (se houver campo para isso) ou apenas iniciando o log de commits.
+3. **Mensagens de Commit**:
+   - Seguir o padrão: `task(NNN): descrição curta do que foi feito`.
+4. **Finalização de Tarefa**:
+   - O agente deve rodar os testes/check de qualidade.
+   - Atualizar o arquivo da tarefa marcando as checkboxes `[x]`.
+   - Realizar o merge para `master`: `git checkout master && git merge task/NNN-slug`.
+5. **Saber "Onde Estamos"**:
+   - O agente deve executar `git log -n 5` e `git branch` no início de cada sessão para entender o contexto.
+   - Consultar `docs/tasks/` para identificar a próxima tarefa `[ ]` pendente.
+
+---
+
 ## Estrutura sugerida do repositório
 
 /crates
