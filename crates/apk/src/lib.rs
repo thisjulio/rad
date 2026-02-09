@@ -1,4 +1,4 @@
-use std::fs::File;
+use std::fs::{self, File};
 use std::path::Path;
 use zip::ZipArchive;
 use anyhow::Result;
@@ -71,12 +71,36 @@ impl ApkInspector {
         }
 
         // Placeholder for package name extraction (AXML parsing)
-        // In a real scenario, we would parse AndroidManifest.xml
         let package_name = "com.example.placeholder".to_string();
 
         Ok(ApkInfo {
             package_name,
             supported_abis: abis.into_iter().collect(),
         })
+    }
+
+    pub fn extract_libs(&self, target_dir: &Path, abi: &Abi) -> Result<()> {
+        let file = File::open(&self.path)?;
+        let mut archive = ZipArchive::new(file)?;
+        let abi_prefix = format!("lib/{}/", abi.as_str());
+
+        for i in 0..archive.len() {
+            let mut file = archive.by_index(i)?;
+            let name = file.name().to_string();
+            
+            if name.starts_with(&abi_prefix) && name.ends_with(".so") {
+                let rel_path = name.strip_prefix(&abi_prefix).unwrap();
+                let out_path = target_dir.join(rel_path);
+                
+                if let Some(parent) = out_path.parent() {
+                    fs::create_dir_all(parent)?;
+                }
+                
+                let mut outfile = File::create(&out_path)?;
+                std::io::copy(&mut file, &mut outfile)?;
+            }
+        }
+
+        Ok(())
     }
 }

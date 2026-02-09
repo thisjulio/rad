@@ -60,6 +60,9 @@ fn main() -> Result<()> {
             prefix.initialize()?;
             println!("✅ Prefix initialized at: {}", prefix_path.display());
 
+            println!("Installing APK to prefix...");
+            prefix.install_apk(std::path::Path::new(&apk_path), &info)?;
+
             let payload_path = std::env::current_dir()?.join("payload");
             if !payload_path.exists() {
                 eprintln!("❌ Payload directory not found. Please ensure 'payload/' exists.");
@@ -67,7 +70,6 @@ fn main() -> Result<()> {
             }
 
             println!("\n🚀 Launching sandbox...");
-            // Run in a separate thread/process if needed, but here we'll try direct
             if let Err(e) = prefix.run_in_sandbox(&payload_path, "init") {
                 eprintln!("❌ Sandbox failure: {}", e);
                 eprintln!("   Note: This often requires User Namespaces. Multi-threading can also block unshare.");
