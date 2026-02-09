@@ -1,5 +1,3 @@
-# README.md
-
 # run-android-app
 
 `run-android-app` é um **runner de apps Android no Linux**, voltado para **desenvolvedores** que querem **rodar e debugar** um APK sem configurar AVD/emulador manualmente.
@@ -20,9 +18,7 @@ O projeto mira Linux x86_64 e prioriza:
 > **Nota**: “sem emulador” aqui significa sem VM/AVD. Ainda assim, um APK depende de runtime/serviços Android; o runner fornece isso via um backend de execução.
 
 ## Status
-Projeto pessoal em desenvolvimento. Os documentos de produto e agentes estão em:
-- [PRODUCT.md](./PRODUCT.md)
-- [AGENTS.md](./AGENTS.md)
+Projeto pessoal em desenvolvimento. A documentação detalhada para agentes e o workflow de desenvolvimento estão em [AGENTS.md](./AGENTS.md).
 
 ## Instalação
 ### Pré-requisitos (host)

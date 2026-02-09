@@ -4,8 +4,6 @@ Este repositório implementa um **runner de apps Android no Linux** focado em **
 
 > `run-android-app myapp.apk`
 
-A proposta é **single-binary** (um executável) que prepara um ambiente Android mínimo (AOSP), sobe a runtime necessária, instala o APK, roda o app e expõe **interfaces de debug (ADB/logcat)**.
-
 ---
 
 ## Princípios do projeto
@@ -51,23 +49,34 @@ A proposta é **single-binary** (um executável) que prepara um ambiente Android
 - Comandos: `logcat`, `shell`, `bugreport`, `pull tombstones`.
 - Integração com Android Studio (attach debugger quando possível).
 
-### 6) Agent: Graphics/Input Bridge
-**Responsável por**: UI no desktop Linux.
-- Integração com Wayland/X11.
-- Input (teclado/mouse), clipboard, DPI/scale.
-- Pode entrar depois do MVP (MVP pode ser “headless” + streaming/captura).
+---
 
-### 7) Agent: Packaging/Release
-**Responsável por**: “single binary” e distribuição.
-- Estratégia de embutir payload AOSP (ex.: squashfs + extractor).
-- Atualizações (checksums, version pinning).
-- Build reproducível e CI.
+## Protocolo de Orquestração de Tarefas (Git-Based)
 
-### 8) Agent: QA/Compat Database
-**Responsável por**: suíte de testes e matriz de compat.
-- Testes de integração: start/stop, install/uninstall, logcat, crash handling.
-- Catálogo de apps de teste (priorizar apps Java/Kotlin puros e/ou x86_64).
-- Database de “overrides” por app (estilo Proton).
+Para garantir que múltiplos agentes (ou você e eu) saibam o progresso sem ferramentas externas:
+
+1. **Saber "Onde Estamos"**:
+   - O agente deve executar `git log -n 5` e `git branch` no início de cada sessão para entender o contexto.
+   - Consultar `docs/tasks/` para identificar a próxima tarefa `[ ]` pendente.
+
+2. **Estado WIP (Work In Progress)**:
+   - A branch atual define a tarefa ativa: `task/NNN-slug` (ex: `task/001-user-ns`).
+   - Se a branch for `master` ou `main`, nenhuma tarefa técnica está sendo executada.
+
+3. **Início de Tarefa**:
+   - Comando: `git checkout -b task/NNN-slug`.
+   - O agente deve atualizar o arquivo correspondente em `docs/tasks/NNN-*.md` marcando o status como em andamento.
+
+4. **Desenvolvimento (TDD Flow)**:
+   - **Passo Red**: Adicione um teste em `src/lib.rs` ou `tests/` que descreva o comportamento esperado da tarefa.
+   - **Passo Green**: Implemente a lógica necessária. Execute `cargo test` para validar.
+   - **Passo Refactor**: Limpe o código, melhore nomes e documentação.
+   - **Commit**: Seguir o padrão: `task(NNN): descrição curta do que foi feito`.
+
+5. **Finalização de Tarefa**:
+   - O agente deve rodar os testes/check de qualidade.
+   - Atualizar o arquivo da tarefa marcando as checkboxes `[x]`.
+   - Realizar o merge para `master`: `git checkout master && git merge task/NNN-slug`.
 
 ---
 
@@ -85,65 +94,21 @@ A proposta é **single-binary** (um executável) que prepara um ambiente Android
 - Preferir módulos pequenos, com fronteiras claras (core vs backends).
 - Exigir testes para parsing de APK e para “doctor”.
 - Evitar “magia”: todas as ações críticas devem ser registradas em log.
-
-### Segurança
-- Por padrão: isolamento (namespaces) e permissões mínimas.
-- Quando precisar de root/capabilities, o CLI deve alertar e explicar.
+- **Regras TDD**: Sempre verificar se a funcionalidade pode ser testada isoladamente. Testes que exigem capacidades de kernel devem ser marcados com `#[ignore]`.
 
 ---
 
-## Protocolo de Orquestração de Tarefas (Git-Based)
-
-Para garantir que múltiplos agentes (ou você e eu) saibam o progresso sem ferramentas externas:
-
-1. **Estado WIP (Work In Progress)**:
-   - A branch atual define a tarefa ativa: `task/NNN-slug` (ex: `task/001-user-ns`).
-   - Se a branch for `master` ou `main`, nenhuma tarefa técnica está sendo executada.
-2. **Início de Tarefa**:
-   - Comando: `git checkout -b task/NNN-slug`.
-   - O agente deve atualizar o arquivo correspondente em `docs/tasks/NNN-*.md` marcando o status como em andamento (se houver campo para isso) ou apenas iniciando o log de commits.
-3. **Mensagens de Commit**:
-   - Seguir o padrão: `task(NNN): descrição curta do que foi feito`.
-4. **Finalização de Tarefa**:
-   - O agente deve rodar os testes/check de qualidade.
-   - Atualizar o arquivo da tarefa marcando as checkboxes `[x]`.
-   - Realizar o merge para `master`: `git checkout master && git merge task/NNN-slug`.
-5. **Saber "Onde Estamos"**:
-   - O agente deve executar `git log -n 5` e `git branch` no início de cada sessão para entender o contexto.
-   - Consultar `docs/tasks/` para identificar a próxima tarefa `[ ]` pendente.
-
----
-
-## Ciclo de Desenvolvimento TDD (Test-Driven Development)
-
-Para garantir a robustez do runner, o desenvolvimento deve seguir o ciclo TDD:
-
-1. **Red**: Escrever um teste unitário ou de integração que falhe para a nova funcionalidade/correção.
-2. **Green**: Escrever o código mínimo necessário para fazer o teste passar.
-3. **Refactor**: Melhorar o código mantendo os testes passando.
-
-**Regras para o Agente**:
-- Sempre verificar se a funcionalidade pode ser testada isoladamente (unit test) ou se exige o ambiente Linux (integration test).
-- Testes que exigem capacidades de kernel (namespaces, binderfs) devem ser marcados com `#[ignore]` ou usar mocks quando possível para rodar em ambientes de CI limitados.
-- Cada commit de implementação deve, idealmente, ser acompanhado por seu respectivo teste.
-
----
-
-## Estrutura sugerida do repositório
+## Estrutura do repositório
 
 /crates
-/cli -> parsing de args, UX, output
-/core -> prefix, orquestração, estado
-/apk -> parse/inspect/install
-/sandbox -> namespaces, mount, binderfs, seccomp
-/adb -> bridge e ferramentas de debug
-/graphics -> (futuro) wayland/x11 bridge
-/payload -> embed/extract/mount do AOSP runtime
-/assets
-/aosp-min -> (opcional) artefatos para gerar payload
-/docs
-/design -> decisões arquiteturais e ADRs
-
+  /cli      -> parsing de args, UX, output
+  /core     -> prefix, orquestração, estado
+  /apk      -> parse/inspect/install
+  /sandbox  -> namespaces, mount, binderfs, seccomp
+  /adb      -> bridge e ferramentas de debug
+/payload    -> embed/extract/mount do AOSP runtime
+/docs       -> tarefas e documentação de design
+/assets     -> artefatos estáticos
 
 ---
 
@@ -152,17 +117,5 @@ Para garantir a robustez do runner, o desenvolvimento deve seguir o ciclo TDD:
 - Compila em Linux x86_64 (CI).
 - `run-android-app doctor` não regrede.
 - Logs úteis (`RUST_LOG=info`).
-- Documentação atualizada (README e/ou docs/design).
+- Documentação atualizada.
 - Sem regressões em parsing de APK.
-
----
-
-## Notas de foco (MVP)
-
-MVP deve priorizar:
-1) `doctor`
-2) `install + run`
-3) `logcat + crash capture`
-4) `stop + reset prefix`
-
-UI rica e integração avançada vêm depois.
