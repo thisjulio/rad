@@ -3,9 +3,10 @@
 ## Descrição Detalhada
 Um APK é um arquivo ZIP que pode conter bibliotecas nativas compiladas para diferentes arquiteturas (ABIs). Para o MVP em Linux x86_64, precisamos de um módulo que inspecione o APK e decida se ele pode ser executado.
 
-As ABIs alvo são:
-- `x86_64`: Execução nativa direta.
-- `No native libs (pure DEX)`: Apps puramente Java/Kotlin que rodam na ART em qualquer arquitetura.
+## Fluxo TDD
+- [ ] **Red**: Criar testes unitários em `crates/apk/src/lib.rs` usando pequenos arquivos ZIP de teste (em memória ou temporários) que simulam APKs com diferentes estruturas de `lib/` (vazio, arm64, x86_64).
+- [ ] **Green**: Implementar a lógica de inspeção usando o crate `zip`.
+- [ ] **Refactor**: Melhorar a API para retornar um enum `CompatStatus` bem definido.
 
 ## Detalhes de Implementação (Rust)
 1.  Usar o crate `zip` para abrir o APK sem extraí-lo totalmente (streaming).

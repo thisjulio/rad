@@ -3,7 +3,10 @@
 ## Descrição Detalhada
 O Android utiliza o IPC Binder para quase toda a comunicação entre o App e o Sistema. Tradicionalmente, isso dependia de `/dev/binder` (um device node fixo). O **binderfs** é a evolução que permite criar instâncias isoladas do Binder para cada container/prefix.
 
-Esta tarefa deve validar se o host suporta `binderfs`, que é o requisito "non-negotiable" para rodar múltiplos apps isolados.
+## Fluxo TDD
+- [ ] **Red**: Criar um teste que verifica a presença do sistema de arquivos `binder` em `/proc/filesystems` e falha se não implementado.
+- [ ] **Green**: Implementar a lógica de parse de `/proc/filesystems` e a verificação de existência de `/dev/binderfs/binder-control`.
+- [ ] **Refactor**: Abstrair a verificação em uma struct de diagnóstico reutilizável.
 
 ## Detalhes de Implementação (Rust)
 1.  **Checar `/proc/filesystems`**: Verificar se a string `binder` está presente na lista de filesystems suportados pelo kernel.
