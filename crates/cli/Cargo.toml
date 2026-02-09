@@ -1,5 +1,5 @@
 [package]
-name = "cli"
+name = "run-android-app"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
