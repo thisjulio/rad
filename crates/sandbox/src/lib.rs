@@ -7,6 +7,10 @@ use nix::libc;
 use std::ffi::CString;
 
 pub mod doctor;
+pub mod binderfs;
+
+// Re-export key binderfs types for convenience
+pub use binderfs::{BinderfsInstance, setup_binderfs_in_sandbox};
 
 pub struct SandboxConfig {
     pub rootfs: std::path::PathBuf,
