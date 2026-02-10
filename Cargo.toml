@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "crates/*",
+    "crates/wayland",
 ]
 resolver = "2"
 

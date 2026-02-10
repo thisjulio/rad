@@ -1304,6 +1304,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "wayland"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "nix",
+ "rustix 0.38.44",
+ "thiserror",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "windows-link"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
