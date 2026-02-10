@@ -51,20 +51,25 @@ Este repositório implementa um **runner de apps Android no Linux** focado em **
 
 ---
 
-## Protocolo de Orquestração de Tarefas (Git-Based)
+## Protocolo de Orquestração de Tarefas (Git-Based + GitFlow)
 
-Para garantir que múltiplos agentes (ou você e eu) saibam o progresso sem ferramentas externas:
+Para garantir que múltiplos agentes (ou você e eu) saibam o progresso sem ferramentas externas, **seguimos GitFlow estritamente**:
+
+### Fluxo de Trabalho (GitFlow)
 
 1. **Saber "Onde Estamos"**:
-   - O agente deve executar `git log -n 5` e `git branch` no início de cada sessão para entender o contexto.
+   - O agente **SEMPRE** executa `git log -n 5`, `git branch` e `git status` no início de cada sessão.
    - Consultar `docs/tasks/` para identificar a próxima tarefa `[ ]` pendente.
+   - Verificar se há mudanças remotas: `git fetch origin`.
 
 2. **Estado WIP (Work In Progress)**:
    - A branch atual define a tarefa ativa: `task/NNN-slug` (ex: `task/001-user-ns`).
    - Se a branch for `master` ou `main`, nenhuma tarefa técnica está sendo executada.
+   - **Nunca** commitar direto em `main` - sempre usar task branches.
 
 3. **Início de Tarefa**:
-   - Comando: `git checkout -b task/NNN-slug`.
+   - Comando: `git checkout main && git pull origin main` (garantir base atualizada).
+   - Criar branch: `git checkout -b task/NNN-slug`.
    - O agente deve atualizar o arquivo correspondente em `docs/tasks/NNN-*.md` marcando o status como em andamento.
 
 4. **Desenvolvimento (TDD Flow)**:
@@ -72,11 +77,70 @@ Para garantir que múltiplos agentes (ou você e eu) saibam o progresso sem ferr
    - **Passo Green**: Implemente a lógica necessária. Execute `cargo test` para validar.
    - **Passo Refactor**: Limpe o código, melhore nomes e documentação.
    - **Commit**: Seguir o padrão: `task(NNN): descrição curta do que foi feito`.
+   - Commits incrementais são encorajados (não esperar tarefa completa para commitar).
 
 5. **Finalização de Tarefa**:
-   - O agente deve rodar os testes/check de qualidade.
+   - O agente deve rodar os testes/check de qualidade: `cargo test && cargo clippy`.
    - Atualizar o arquivo da tarefa marcando as checkboxes `[x]`.
-   - Realizar o merge para `master`: `git checkout master && git merge task/NNN-slug`.
+   - **Merge para main**: 
+     ```bash
+     git checkout main
+     git pull origin main  # CRÍTICO: garantir que main está atualizado
+     git merge task/NNN-slug --no-ff  # Preservar histórico da branch
+     ```
+   - Se houver conflitos: resolver, testar novamente, e commitar merge.
+
+6. **Sincronização com Remoto (OBRIGATÓRIO)**:
+   - Após merge bem-sucedido, **SEMPRE** fazer push:
+     ```bash
+     git push origin main
+     git push origin task/NNN-slug  # Opcional: preservar task branch no remoto
+     ```
+   - **ATENÇÃO**: Antes de push, verificar se há atualizações remotas:
+     ```bash
+     git fetch origin
+     git status  # Verificar "Your branch is ahead/behind/diverged"
+     ```
+   - Se divergiu (trabalho paralelo detectado):
+     ```bash
+     git pull --rebase origin main  # Preferir rebase para histórico linear
+     # OU
+     git pull origin main  # Merge se preferir preservar histórico de merge
+     ```
+     - Resolver conflitos se houver.
+     - Testar novamente: `cargo test`.
+     - Então fazer push: `git push origin main`.
+
+7. **Casos Especiais**:
+   - **Push rejeitado** (`! [rejected]`): Significa que alguém fez push antes de você.
+     ```bash
+     git pull --rebase origin main
+     cargo test  # Garantir que rebase não quebrou nada
+     git push origin main
+     ```
+   - **Conflitos durante pull/rebase**: 
+     - Resolver conflitos manualmente.
+     - `git add <arquivos-resolvidos>`.
+     - `git rebase --continue` (se rebase) OU `git commit` (se merge).
+     - Testar: `cargo test`.
+     - Push: `git push origin main`.
+   - **Emergência** (precisa reverter): 
+     ```bash
+     git revert <commit-hash>  # Criar commit de reversão (preferido)
+     # OU
+     git reset --hard origin/main  # Descartar trabalho local (cuidado!)
+     ```
+
+### Regras de Ouro (Git)
+
+- ✅ **SEMPRE** `git pull origin main` antes de criar task branch.
+- ✅ **SEMPRE** `git pull origin main` antes de merge final.
+- ✅ **SEMPRE** `git push origin main` após merge bem-sucedido.
+- ✅ **SEMPRE** verificar `git status` antes de push.
+- ✅ **SEMPRE** testar (`cargo test`) após merge/rebase/pull.
+- ❌ **NUNCA** commitar direto em `main` (usar task branches).
+- ❌ **NUNCA** fazer `git push --force origin main` (extremamente perigoso).
+- ❌ **NUNCA** deixar trabalho sem push (outras sessões não verão).
 
 ---
 
