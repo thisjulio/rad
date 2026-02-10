@@ -34,10 +34,10 @@ pub fn setup_mounts(rootfs: &Path) -> Result<()> {
   - `unshare(CLONE_NEWNS)` - mount namespace  
   - Setup de uid/gid mapping
 - [x] Implementar `setup_mounts(rootfs: &Path)`:
-  - Mount de `/proc`
-  - Mount de `/sys`
-  - Mount tmpfs em `/dev`
-  - Mount tmpfs em `/tmp`
+  - ⚠️ Mount de `/proc` - SKIPPED (requer PID namespace, ver Task 021)
+  - ⚠️ Mount de `/sys` - SKIPPED (requer namespaces adicionais)
+  - Mount tmpfs em `/dev` ✅
+  - Mount tmpfs em `/tmp` ✅
 - [x] **Refactor**: Criar struct `SandboxConfig` para configurar namespaces
 - [x] Adicionar logging detalhado de cada etapa
 - [x] Tratar erros (permissões insuficientes, kernel sem suporte)

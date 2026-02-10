@@ -1,32 +1,28 @@
 # Task 051: [DEBT] Implement Real AndroidManifest.xml Parser
 
-Status: pending
+Status: completed
 Priority: high
 Type: technical-debt
 Parent: 002-apk-inspector
 
 ## Description
-A Task 002 marcou "Extract package name from AndroidManifest.xml (placeholder)" como completo, mas a implementação atual retorna um valor hardcoded. Para o MVP funcionar, precisamos extrair o package name real do APK.
+A Task 002 marcou "Extract package name from AndroidManifest.xml (placeholder)" como completo, mas a implementação original retornava um valor hardcoded.
 
-## Débito Identificado
-Em `crates/apk/src/lib.rs:75`:
-```rust
-// Placeholder for package name extraction (AXML parsing)
-// In a real scenario, we would parse AndroidManifest.xml
-let package_name = "com.example.placeholder".to_string();
-```
+## Resolução (2026-02-09)
+O débito foi resolvido. A implementação atual usa `axmldecoder` para parsing real:
+- `crates/apk/src/lib.rs:90-110`: `extract_package_name()` decodifica AXML binário e lê atributo `package`
+- `crates/apk/src/lib.rs:138-188`: `parse_manifest()` extrai versionCode, versionName e mainActivity
+- 3 testes funcionais validam extração correta (usando F-Droid APK)
 
-**Problema**: Todo APK retorna o mesmo package name, impedindo múltiplos apps de terem prefixes isolados.
-
-## Todos
-- [ ] **Red**: Criar teste que valida package name de um APK real
-- [ ] **Green**: Adicionar dependência `axml-parser` ou similar ao `crates/apk/Cargo.toml`
-- [ ] Implementar função `parse_manifest(archive: &ZipArchive) -> Result<String>`
-- [ ] Extrair arquivo `AndroidManifest.xml` do ZIP
-- [ ] Parse do formato binário AXML
-- [ ] Extrair atributo `package` do elemento `<manifest>`
-- [ ] **Refactor**: Tratar erros (manifest ausente, AXML corrompido)
-- [ ] Adicionar testes para diferentes formatos de manifest
+## Todos (originais - todos resolvidos)
+- [x] **Red**: Criar teste que valida package name de um APK real
+- [x] **Green**: Adicionar dependência `axmldecoder` ao `crates/apk/Cargo.toml`
+- [x] Implementar função `parse_manifest(archive: &ZipArchive) -> Result<AppManifest>`
+- [x] Extrair arquivo `AndroidManifest.xml` do ZIP
+- [x] Parse do formato binário AXML
+- [x] Extrair atributo `package` do elemento `<manifest>`
+- [x] **Refactor**: Tratar erros (manifest ausente, AXML corrompido)
+- [ ] Adicionar testes para diferentes formatos de manifest (pendente - ver Task 050)
 
 ## Fluxo TDD
 1. **Red**: Teste que extrai package de um APK real deve falhar com "com.example.placeholder"
