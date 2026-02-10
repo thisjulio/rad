@@ -4,9 +4,9 @@
 O arquivo `AndroidManifest.xml` dentro de um APK não é um XML comum; ele é compilado em um formato binário chamado AXML para economia de espaço e performance no Android. Precisamos extrair informações críticas dele (Package Name, Version e Main Activity).
 
 ## Fluxo TDD
-- [ ] **Red**: Criar um teste que recebe bytes de um manifesto binário real (ou simplificado) e tenta extrair o package name, falhando inicialmente.
-- [ ] **Green**: Implementar a integração com o parser AXML (ex: `apk-info`).
-- [ ] **Refactor**: Encapsular os dados extraídos em uma struct `AppManifest`.
+- [x] **Red**: Criar um teste que recebe bytes de um manifesto binário real (ou simplificado) e tenta extrair o package name, falhando inicialmente.
+- [x] **Green**: Implementar a integração com o parser AXML (ex: `apk-info`).
+- [x] **Refactor**: Encapsular os dados extraídos em uma struct `AppManifest`.
 
 ## Detalhes de Implementação (Rust)
 1.  Extrair os bytes de `AndroidManifest.xml` do ZIP.
