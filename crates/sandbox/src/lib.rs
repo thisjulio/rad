@@ -158,11 +158,49 @@ pub fn exec<P: AsRef<Path>>(path: P, args: &[String]) -> Result<()> {
     Err(anyhow::anyhow!("execv failed"))
 }
 
+pub struct BinderfsStatus {
+    pub kernel_support: bool,
+    pub control_exists: bool,
+}
+
+pub fn check_binderfs() -> BinderfsStatus {
+    let kernel_support = std::fs::read_to_string("/proc/filesystems")
+        .map(|c| parse_proc_filesystems(&c))
+        .unwrap_or(false);
+    
+    let control_exists = std::path::Path::new("/dev/binderfs/binder-control").exists();
+    
+    BinderfsStatus { kernel_support, control_exists }
+}
+
+fn parse_proc_filesystems(content: &str) -> bool {
+    content.lines().any(|l| l.trim().ends_with("binder"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::fs;
     
+    #[test]
+    fn test_parse_proc_filesystems() {
+        let ok_content = "nodev\tsysfs\nnodev\ttmpfs\nnodev\tbinder\n";
+        let fail_content = "nodev\tsysfs\nnodev\ttmpfs\n";
+        
+        assert!(parse_proc_filesystems(ok_content));
+        assert!(!parse_proc_filesystems(fail_content));
+    }
+
+    #[test]
+    fn test_check_binderfs_logic() {
+        // We can't easily mock the FS for check_binderfs() without changing its signature,
+        // but we already tested parse_proc_filesystems.
+        // This is a sanity check for the current host.
+        let status = check_binderfs();
+        println!("Binderfs kernel support: {}", status.kernel_support);
+        println!("Binderfs control exists: {}", status.control_exists);
+    }
+
     /// Test that enters a user namespace
     /// 
     /// Note: This test is ignored by default because:

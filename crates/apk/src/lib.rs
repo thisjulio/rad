@@ -15,7 +15,7 @@ pub enum Abi {
 }
 
 impl Abi {
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn from_str_opt(s: &str) -> Option<Self> {
         match s {
             "arm64-v8a" => Some(Abi::Arm64V8a),
             "armeabi-v7a" => Some(Abi::ArmV7a),
@@ -64,10 +64,8 @@ impl ApkInspector {
             
             if name.starts_with("lib/") {
                 let parts: Vec<&str> = name.split('/').collect();
-                if parts.len() >= 2 {
-                    if let Some(abi) = Abi::from_str(parts[1]) {
-                        abis.insert(abi);
-                    }
+                if let Some(abi) = parts.get(1).and_then(|s| Abi::from_str_opt(s)) {
+                    abis.insert(abi);
                 }
             }
         }
@@ -90,12 +88,13 @@ impl ApkInspector {
         let doc = axmldecoder::parse(&buffer)
             .map_err(|e| anyhow!("Failed to decode AXML: {:?}", e))?;
 
-        if let Some(Node::Element(root)) = doc.get_root() {
-            if root.get_tag() == "manifest" {
+        match doc.get_root() {
+            Some(Node::Element(root)) if root.get_tag() == "manifest" => {
                 if let Some(package) = root.get_attributes().get("package") {
                     return Ok(package.to_string());
                 }
             }
+            _ => {}
         }
 
         Err(anyhow!("Could not find package attribute in AndroidManifest.xml"))
