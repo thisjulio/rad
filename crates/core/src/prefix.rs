@@ -8,6 +8,7 @@ use apk::{ApkInfo, ApkInspector, Abi};
 use tracing::info;
 use nix::unistd::{fork, ForkResult};
 use nix::sys::wait::{waitpid, WaitStatus};
+use crate::zygote;
 
 const DEFAULT_PREFIX_DIRS: &[&str] = &[
     "root",
@@ -88,10 +89,38 @@ impl Prefix {
 
     pub fn enter_shell(&self, payload_path: &Path) -> Result<()> {
         let (command, args) = self.resolve_shell_command()?;
-        self.run_in_sandbox(payload_path, &command, &args, false)
+        self.run_in_sandbox_with_env(payload_path, &command, &args, &[], false)
+    }
+
+    pub fn launch_zygote_light(
+        &self,
+        payload_path: &Path,
+        main_class: &str,
+        main_args: &[String],
+        redirect: bool,
+    ) -> Result<()> {
+        let spec = zygote::build_launch_spec(&self.root, main_class, main_args)?;
+        self.run_in_sandbox_with_env(
+            payload_path,
+            &spec.executable,
+            &spec.args,
+            &spec.env,
+            redirect,
+        )
     }
 
     pub fn run_in_sandbox(&self, payload_path: &Path, command: &str, args: &[String], redirect: bool) -> Result<()> {
+        self.run_in_sandbox_with_env(payload_path, command, args, &[], redirect)
+    }
+
+    pub fn run_in_sandbox_with_env(
+        &self,
+        payload_path: &Path,
+        command: &str,
+        args: &[String],
+        env: &[(String, String)],
+        redirect: bool,
+    ) -> Result<()> {
         use tracing::error;
         
         // We must fork before entering namespaces because unshare(CLONE_NEWUSER) 
@@ -114,7 +143,7 @@ impl Prefix {
             }
             ForkResult::Child => {
                 // Child process: setup sandbox and exec
-                let result = self.run_in_sandbox_child(payload_path, command, args, redirect);
+                let result = self.run_in_sandbox_child(payload_path, command, args, env, redirect);
                 
                 match result {
                     Ok(_) => {
@@ -130,7 +159,14 @@ impl Prefix {
         }
     }
     
-    fn run_in_sandbox_child(&self, payload_path: &Path, command: &str, args: &[String], redirect: bool) -> Result<()> {
+    fn run_in_sandbox_child(
+        &self,
+        payload_path: &Path,
+        command: &str,
+        args: &[String],
+        env: &[(String, String)],
+        redirect: bool,
+    ) -> Result<()> {
         let log_path = self.root.join("logs/app.log");
         
         // Enter namespaces (safe in child process)
@@ -151,7 +187,11 @@ impl Prefix {
         let mut exec_args = Vec::with_capacity(args.len() + 1);
         exec_args.push(command.to_string());
         exec_args.extend_from_slice(args);
-        sandbox::exec(command, &exec_args)?;
+        if env.is_empty() {
+            sandbox::exec(command, &exec_args)?;
+        } else {
+            sandbox::exec_with_env(command, &exec_args, env)?;
+        }
         
         Ok(())
     }
