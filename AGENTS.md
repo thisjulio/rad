@@ -51,6 +51,46 @@ Este repositório implementa um **runner de apps Android no Linux** focado em **
 
 ---
 
+## Git Worktrees para Trabalho Paralelo
+
+Este repositório usa **Git Worktrees** para permitir que múltiplos agentes trabalhem simultaneamente em tasks diferentes.
+
+### Estrutura de Worktrees
+
+```
+/home/thisjulio/Desktop/projects/rad/
+├── rad.git/                    # Bare repository
+├── main/                       # Worktree: main branch
+├── task-021-pid-namespace/     # Worktree: task/021-pid-namespace
+├── task-031-aosp-payload/      # Worktree: task/031-aosp-payload
+└── experiments/                # Worktree: experiments branch
+```
+
+### Escolhendo o Worktree Correto
+
+**Início de cada sessão:**
+```bash
+# 1. Verificar worktrees disponíveis
+cd /home/thisjulio/Desktop/projects/rad/rad.git
+git worktree list
+
+# 2. Navegar para o worktree apropriado:
+# - main: review, merge, testes gerais
+# - task-NNN-*: desenvolvimento de task específica
+# - experiments: testes destrutivos
+cd /home/thisjulio/Desktop/projects/rad/WORKTREE_NAME
+```
+
+**Benefícios:**
+- ✅ Múltiplos agentes podem trabalhar simultaneamente
+- ✅ Cada worktree tem `target/` e `prefixes/` isolados
+- ✅ Sem conflitos de checkout entre sessões
+- ✅ Sem recompilação ao mudar de task
+
+**Documentação completa:** Ver `/home/thisjulio/Desktop/projects/rad/WORKTREES.md`
+
+---
+
 ## Protocolo de Orquestração de Tarefas (Git-Based + GitFlow)
 
 Para garantir que múltiplos agentes (ou você e eu) saibam o progresso sem ferramentas externas, **seguimos GitFlow estritamente**:
