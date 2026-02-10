@@ -341,6 +341,10 @@ namespace.default.permitted.paths = /system:/apex:/vendor:/data
 
     /// Mount images using fuse2fs (userspace, no root needed)
     fn fuse_mount_images(&mut self) -> Result<()> {
+        // Clean up any stale mounts from previous runs
+        let _ = fusermount_unmount(&self.mounts.system_mount);
+        let _ = fusermount_unmount(&self.mounts.vendor_mount);
+
         // Mount system.img via fuse2fs
         info!(
             "FUSE-mounting system.img at {}...",
