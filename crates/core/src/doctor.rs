@@ -8,18 +8,14 @@ pub struct DoctorIssue {
 }
 
 pub fn run_doctor() -> Vec<DoctorIssue> {
-    let mut issues = Vec::new();
-
-    // Check Binder
-    issues.push(check_binder());
-
-    // Check Namespaces
-    issues.push(check_namespaces());
-
-    // Check OverlayFS
-    issues.push(check_overlayfs());
-
-    issues
+    vec![
+        // Check Binder
+        check_binder(),
+        // Check Namespaces
+        check_namespaces(),
+        // Check OverlayFS
+        check_overlayfs(),
+    ]
 }
 
 fn check_overlayfs() -> DoctorIssue {
@@ -45,21 +41,31 @@ fn check_overlayfs() -> DoctorIssue {
 }
 
 fn check_binder() -> DoctorIssue {
-    let binderfs = Path::new("/dev/binderfs").exists();
+    let status = sandbox::check_binderfs();
     let binder_dev = Path::new("/dev/binder").exists();
     
-    let status = binderfs || binder_dev;
+    let ok = status.kernel_support || binder_dev;
+    
+    let mut description = if status.kernel_support {
+        "Binderfs is supported by the kernel.".to_string()
+    } else if binder_dev {
+        "Legacy /dev/binder found.".to_string()
+    } else {
+        "Binder IPC is NOT supported by the kernel.".to_string()
+    };
+
+    if status.kernel_support && !status.control_exists {
+        description.push_str(" However, /dev/binderfs/binder-control is missing.");
+    }
     
     DoctorIssue {
-        name: "Binder Device".to_string(),
-        status,
-        description: if status {
-            "Binder device or binderfs found.".to_string()
-        } else {
-            "Binder device not found. Android apps require Binder for IPC.".to_string()
-        },
-        fix: if !status {
-            Some("Ensure binder is enabled in your kernel or mount binderfs.".to_string())
+        name: "Binder IPC".to_string(),
+        status: ok,
+        description,
+        fix: if !ok {
+            Some("Ensure CONFIG_ANDROID_BINDERFS=y or CONFIG_ANDROID_BINDER_IPC=y in kernel config.".to_string())
+        } else if status.kernel_support && !status.control_exists {
+            Some("Mount binderfs: `mkdir /dev/binderfs && mount -t binder binder /dev/binderfs`".to_string())
         } else {
             None
         },
