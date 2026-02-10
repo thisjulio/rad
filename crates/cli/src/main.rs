@@ -96,10 +96,13 @@ fn main() -> Result<()> {
         Commands::Shell { package } => {
             let prefix = get_prefix(&package)?;
             let payload_path = std::env::current_dir()?.join("payload");
+            if !payload_path.exists() {
+                eprintln!("❌ Payload directory not found. Please ensure 'payload/' exists.");
+                std::process::exit(1);
+            }
             
             println!("🐚 Opening shell in {} sandbox...", package);
-            // Run busybox explicitly with 'sh' applet
-            if let Err(e) = prefix.run_in_sandbox(&payload_path, "/system/bin/busybox", &["sh".to_string()], false) {
+            if let Err(e) = prefix.enter_shell(&payload_path) {
                 eprintln!("❌ Shell failure: {}", e);
             }
         }
