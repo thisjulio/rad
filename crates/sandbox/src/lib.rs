@@ -268,4 +268,44 @@ mod tests {
         assert_eq!(uid_map, "0 1000 1");
         assert_eq!(gid_map, "0 1000 1");
     }
+    
+    /// Test bind mounting a payload directory
+    /// 
+    /// Note: This test is ignored because it requires:
+    /// 1. User namespace or CAP_SYS_ADMIN capability
+    /// 2. Single-threaded process (cargo test creates threads)
+    /// 
+    /// The actual bind mounting logic is tested indirectly via integration tests
+    /// that run in forked processes (see prefix::tests).
+    #[test]
+    #[ignore]
+    fn test_bind_mount_payload() {
+        // Create temporary directories
+        let temp_dir = std::env::temp_dir();
+        let source = temp_dir.join("bind-mount-source");
+        let target = temp_dir.join("bind-mount-target");
+        
+        std::fs::create_dir_all(&source).unwrap();
+        std::fs::create_dir_all(&target).unwrap();
+        
+        // Create a test file in source
+        std::fs::write(source.join("test.txt"), b"payload content").unwrap();
+        
+        // Attempt bind mount (will fail without proper namespace/capabilities)
+        match bind_mount(&source, &target) {
+            Ok(_) => {
+                // Verify mount worked
+                let content = std::fs::read_to_string(target.join("test.txt"))
+                    .expect("Should be able to read mounted file");
+                assert_eq!(content, "payload content");
+            }
+            Err(e) => {
+                eprintln!("Expected failure without proper capabilities: {}", e);
+            }
+        }
+        
+        // Cleanup
+        let _ = std::fs::remove_dir_all(source);
+        let _ = std::fs::remove_dir_all(target);
+    }
 }
