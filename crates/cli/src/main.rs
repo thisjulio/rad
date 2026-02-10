@@ -25,6 +25,11 @@ enum Commands {
         #[arg(long)]
         force: bool,
     },
+    /// Open an interactive shell inside the app's sandbox
+    Shell {
+        /// Package name
+        package: String,
+    },
     /// Reset the environment for a specific package
     Reset {
         /// Package name
@@ -81,10 +86,21 @@ fn main() -> Result<()> {
             }
 
             println!("\n🚀 Launching sandbox...");
-            if let Err(e) = prefix.run_in_sandbox(&payload_path, "init") {
+            // We run /system/bin/init inside the chroot
+            if let Err(e) = prefix.run_in_sandbox(&payload_path, "/system/bin/init", &[], true) {
                 eprintln!("❌ Sandbox failure: {}", e);
             } else {
                 println!("✨ Sandbox session finished.");
+            }
+        }
+        Commands::Shell { package } => {
+            let prefix = get_prefix(&package)?;
+            let payload_path = std::env::current_dir()?.join("payload");
+            
+            println!("🐚 Opening shell in {} sandbox...", package);
+            // Run busybox explicitly with 'sh' applet
+            if let Err(e) = prefix.run_in_sandbox(&payload_path, "/system/bin/busybox", &["sh".to_string()], false) {
+                eprintln!("❌ Shell failure: {}", e);
             }
         }
         Commands::Reset { package } => {
