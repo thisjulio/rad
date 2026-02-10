@@ -1,6 +1,6 @@
 # Task 003: Runtime Orchestrator & Sandbox
 
-Status: in_progress
+Status: completed
 Priority: high
 
 ## Description
@@ -10,7 +10,7 @@ Implement the core logic to create a prefix and setup the sandbox using Linux na
 - [x] Define `Prefix` struct in `crates/core`
 - [x] Implement prefix creation (directory structure: `/data`, `/system`, `/dev`, etc.)
 - [x] Implement `sandbox::setup` using `nix` to enter new namespaces (user, mount, pid)
-- [ ] Implement basic bind mounting of a "payload" directory into the prefix
+- [x] Implement basic bind mounting of a "payload" directory into the prefix
 - [x] Add `doctor` check for required capabilities/privileges (OverlayFS, etc.)
 
 ## Context
