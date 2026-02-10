@@ -96,3 +96,40 @@ impl Prefix {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use apk::{ApkInfo, Abi};
+    use std::fs;
+
+    #[test]
+    fn test_install_apk_flow() -> Result<()> {
+        let test_root = Path::new("../../target/test_prefix_004");
+        if test_root.exists() {
+            fs::remove_dir_all(test_root)?;
+        }
+        
+        let prefix = Prefix::new(test_root);
+        prefix.initialize()?;
+
+        let apk_path = Path::new("../../test.apk");
+        let info = ApkInfo {
+            package_name: "com.test.app".to_string(),
+            supported_abis: vec![Abi::X86_64, Abi::Arm64V8a],
+        };
+
+        prefix.install_apk(apk_path, &info)?;
+
+        // Verify APK copy
+        assert!(test_root.join("data/app/com.test.app/base.apk").exists());
+
+        // Verify lib extraction (x86_64 should be preferred)
+        assert!(test_root.join("data/app/com.test.app/lib/x86_64/libtest.so").exists());
+
+        // Verify data directory
+        assert!(test_root.join("data/data/com.test.app").exists());
+
+        Ok(())
+    }
+}

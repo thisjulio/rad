@@ -9,7 +9,7 @@ pub struct SandboxConfig {
 
 pub fn enter_namespaces() -> Result<()> {
     // Attempt to unshare User and Mount namespaces first, as they are most critical for mounting
-    let mut flags = CloneFlags::CLONE_NEWUSER | CloneFlags::CLONE_NEWNS;
+    let flags = CloneFlags::CLONE_NEWUSER | CloneFlags::CLONE_NEWNS;
     
     // We can also try NEWPID, but it might require more setup (forking)
     // flags |= CloneFlags::CLONE_NEWPID;

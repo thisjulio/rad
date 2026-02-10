@@ -8,18 +8,14 @@ pub struct DoctorIssue {
 }
 
 pub fn run_doctor() -> Vec<DoctorIssue> {
-    let mut issues = Vec::new();
-
-    // Check Binder
-    issues.push(check_binder());
-
-    // Check Namespaces
-    issues.push(check_namespaces());
-
-    // Check OverlayFS
-    issues.push(check_overlayfs());
-
-    issues
+    vec![
+        // Check Binder
+        check_binder(),
+        // Check Namespaces
+        check_namespaces(),
+        // Check OverlayFS
+        check_overlayfs(),
+    ]
 }
 
 fn check_overlayfs() -> DoctorIssue {

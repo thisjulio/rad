@@ -12,15 +12,23 @@ pub enum Abi {
     X86,
 }
 
-impl Abi {
-    pub fn from_str(s: &str) -> Option<Self> {
+impl std::str::FromStr for Abi {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "arm64-v8a" => Some(Abi::Arm64V8a),
-            "armeabi-v7a" => Some(Abi::ArmV7a),
-            "x86_64" => Some(Abi::X86_64),
-            "x86" => Some(Abi::X86),
-            _ => None,
+            "arm64-v8a" => Ok(Abi::Arm64V8a),
+            "armeabi-v7a" => Ok(Abi::ArmV7a),
+            "x86_64" => Ok(Abi::X86_64),
+            "x86" => Ok(Abi::X86),
+            _ => Err(()),
         }
+    }
+}
+
+impl Abi {
+    pub fn parse_abi(s: &str) -> Option<Self> {
+        <Self as std::str::FromStr>::from_str(s).ok()
     }
 
     pub fn as_str(&self) -> &'static str {
@@ -62,10 +70,8 @@ impl ApkInspector {
             
             if name.starts_with("lib/") {
                 let parts: Vec<&str> = name.split('/').collect();
-                if parts.len() >= 2 {
-                    if let Some(abi) = Abi::from_str(parts[1]) {
-                        abis.insert(abi);
-                    }
+                if let Some(abi) = parts.get(1).and_then(|s| Abi::parse_abi(s)) {
+                    abis.insert(abi);
                 }
             }
         }
