@@ -11,3 +11,5 @@ anyhow.workspace = true
 thiserror.workspace = true
 zip = "0.6"
 serde = { workspace = true, features = ["derive"] }
+axmldecoder = "0.5"
+quick-xml = "0.31"

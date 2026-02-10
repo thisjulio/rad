@@ -1,8 +1,10 @@
 use std::fs::{self, File};
 use std::path::Path;
 use zip::ZipArchive;
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use serde::{Serialize, Deserialize};
+use std::io::Read;
+use axmldecoder::Node;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Abi {
@@ -40,7 +42,7 @@ pub struct ApkInfo {
 }
 
 pub struct ApkInspector {
-    path: std::path::PathBuf,
+    pub path: std::path::PathBuf,
 }
 
 impl ApkInspector {
@@ -70,13 +72,33 @@ impl ApkInspector {
             }
         }
 
-        // Placeholder for package name extraction (AXML parsing)
-        let package_name = "com.example.placeholder".to_string();
+        let package_name = self.extract_package_name(&mut archive)?;
 
         Ok(ApkInfo {
             package_name,
             supported_abis: abis.into_iter().collect(),
         })
+    }
+
+    fn extract_package_name(&self, archive: &mut ZipArchive<File>) -> Result<String> {
+        let mut manifest_file = archive.by_name("AndroidManifest.xml")
+            .map_err(|_| anyhow!("AndroidManifest.xml not found in APK"))?;
+        
+        let mut buffer = Vec::new();
+        manifest_file.read_to_end(&mut buffer)?;
+
+        let doc = axmldecoder::parse(&buffer)
+            .map_err(|e| anyhow!("Failed to decode AXML: {:?}", e))?;
+
+        if let Some(Node::Element(root)) = doc.get_root() {
+            if root.get_tag() == "manifest" {
+                if let Some(package) = root.get_attributes().get("package") {
+                    return Ok(package.to_string());
+                }
+            }
+        }
+
+        Err(anyhow!("Could not find package attribute in AndroidManifest.xml"))
     }
 
     pub fn extract_libs(&self, target_dir: &Path, abi: &Abi) -> Result<()> {
