@@ -852,6 +852,7 @@ name = "sandbox"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "libc",
  "nix",
  "rustix 0.38.44",
  "tempfile",
