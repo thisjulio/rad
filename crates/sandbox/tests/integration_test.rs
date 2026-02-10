@@ -11,8 +11,8 @@ fn test_namespace_in_child_process() {
     // sudo cargo run -- run test.apk
     // ```
     
-    // This test verifies the API surface exists and is callable
-    assert!(true, "Integration test placeholder - API surface validated in unit tests");
+    // This smoke test verifies the integration API can be called.
+    let _status = sandbox::check_binderfs();
 }
 
 /// Test that setup_mounts would create the expected directory structure

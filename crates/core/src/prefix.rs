@@ -83,6 +83,11 @@ impl Prefix {
         Ok(())
     }
 
+    pub fn enter_shell(&self, payload_path: &Path) -> Result<()> {
+        let (command, args) = self.resolve_shell_command()?;
+        self.run_in_sandbox(payload_path, &command, &args, false)
+    }
+
     pub fn run_in_sandbox(&self, payload_path: &Path, command: &str, args: &[String], redirect: bool) -> Result<()> {
         use tracing::error;
         
@@ -140,7 +145,10 @@ impl Prefix {
         sandbox::chroot(&self.root)?;
 
         // Exec the command (never returns if successful)
-        sandbox::exec(command, args)?;
+        let mut exec_args = Vec::with_capacity(args.len() + 1);
+        exec_args.push(command.to_string());
+        exec_args.extend_from_slice(args);
+        sandbox::exec(command, &exec_args)?;
         
         Ok(())
     }
@@ -153,9 +161,101 @@ impl Prefix {
             sandbox::bind_mount(&system_source, &system_target)?;
         }
 
+        let host_bin = Path::new("/bin");
+        let root_bin = self.root.join("bin");
+        if host_bin.exists() {
+            fs::create_dir_all(&root_bin)?;
+            sandbox::bind_mount(host_bin, &root_bin)?;
+        }
+
         // 2. Setup proc, sys, dev
         sandbox::setup_mounts(&self.root)?;
 
         Ok(())
+    }
+
+    fn resolve_shell_command(&self) -> Result<(String, Vec<String>)> {
+        if self.root.join("system/bin/sh").exists() {
+            return Ok(("/system/bin/sh".to_string(), Vec::new()));
+        }
+
+        if self.root.join("system/bin/busybox").exists() {
+            return Ok(("/system/bin/busybox".to_string(), vec!["sh".to_string()]));
+        }
+
+        if Path::new("/bin/sh").exists() {
+            return Ok(("/bin/sh".to_string(), Vec::new()));
+        }
+
+        if let Some(shell) = std::env::var_os("SHELL") {
+            let shell = PathBuf::from(shell);
+            if shell.exists() {
+                return Ok((shell.to_string_lossy().into_owned(), Vec::new()));
+            }
+        }
+
+        Err(anyhow::anyhow!(
+            "no shell executable found in payload runtime or host"
+        ))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Prefix;
+    use std::fs;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn shell_prefers_runtime_sh_when_available() {
+        let root = make_temp_prefix_root("runtime-sh");
+        fs::create_dir_all(root.join("system/bin")).unwrap();
+        fs::write(root.join("system/bin/sh"), b"#!/bin/sh\n").unwrap();
+
+        let prefix = Prefix::new(&root);
+        let (command, args) = prefix.resolve_shell_command().unwrap();
+
+        assert_eq!(command, "/system/bin/sh");
+        assert!(args.is_empty());
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn shell_uses_busybox_sh_when_system_shell_is_missing() {
+        let root = make_temp_prefix_root("busybox-shell");
+        fs::create_dir_all(root.join("system/bin")).unwrap();
+        fs::write(root.join("system/bin/busybox"), b"#!/bin/sh\n").unwrap();
+
+        let prefix = Prefix::new(&root);
+        let (command, args) = prefix.resolve_shell_command().unwrap();
+
+        assert_eq!(command, "/system/bin/busybox");
+        assert_eq!(args, vec!["sh".to_string()]);
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn shell_falls_back_to_host_bin_sh() {
+        let root = make_temp_prefix_root("host-shell");
+        let prefix = Prefix::new(&root);
+        let (command, args) = prefix.resolve_shell_command().unwrap();
+
+        assert_eq!(command, "/bin/sh");
+        assert!(args.is_empty());
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    fn make_temp_prefix_root(label: &str) -> PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("rad-prefix-{label}-{nanos}"));
+        fs::create_dir_all(&path).unwrap();
+        path
     }
 }
