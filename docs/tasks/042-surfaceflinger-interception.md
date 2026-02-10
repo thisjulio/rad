@@ -4,9 +4,9 @@
 No Android, o `SurfaceFlinger` compõe as janelas. Precisamos de um mecanismo para que os frames gerados pelo App cheguem ao nosso cliente Wayland.
 
 ## Fluxo TDD
-- [ ] **Red**: Teste que assevera a falha ao tentar capturar um frame de um buffer virtual inexistente.
-- [ ] **Green**: Implementar a lógica de configuração do buffer virtual e a interceptação via Gralloc/VirGL.
-- [ ] **Refactor**: Criar uma interface genérica de "FrameProvider" para suportar diferentes backends gráficos no futuro.
+- [x] **Red**: Teste que assevera a falha ao tentar capturar um frame de um buffer virtual inexistente.
+- [x] **Green**: Implementar a lógica de configuração do buffer virtual e a interceptação via Gralloc/VirGL.
+- [x] **Refactor**: Criar uma interface genérica de "FrameProvider" para suportar diferentes backends gráficos no futuro.
 
 ## Detalhes de Implementação (Rust)
 1.  Configurar o App para renderizar em um buffer virtual.
