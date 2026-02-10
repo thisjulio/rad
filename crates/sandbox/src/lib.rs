@@ -10,15 +10,24 @@ pub struct SandboxConfig {
     pub rootfs: std::path::PathBuf,
 }
 
+/// Enter user and mount namespaces
+/// 
+/// IMPORTANT: This must be called in a single-threaded context (before any threads are created)
+/// or after fork(). Calling unshare(CLONE_NEWUSER) in a multi-threaded process will fail
+/// with EINVAL.
 pub fn enter_namespaces() -> Result<()> {
     use tracing::info;
+    
+    // Get original uid/gid BEFORE entering namespace
+    let uid = unsafe { libc::getuid() };
+    let gid = unsafe { libc::getgid() };
     
     // First, enter user namespace
     info!("Entering user namespace");
     unshare(CloneFlags::CLONE_NEWUSER)?;
     
     // Setup uid/gid mapping immediately after entering user namespace
-    setup_uid_gid_mapping()?;
+    setup_uid_gid_mapping(uid, gid)?;
     
     // Now we can enter mount namespace (needs to be root in user ns)
     info!("Entering mount namespace");
@@ -63,7 +72,7 @@ pub fn redirect_stdio(log_file: &std::fs::File) -> Result<()> {
 }
 
 pub fn setup_mounts(rootfs: &Path) -> Result<()> {
-    use tracing::{info, error};
+    use tracing::{info, warn};
     
     info!("Setting up mounts in rootfs: {}", rootfs.display());
     
@@ -78,55 +87,33 @@ pub fn setup_mounts(rootfs: &Path) -> Result<()> {
     std::fs::create_dir_all(&dev_path)?;
     std::fs::create_dir_all(&tmp_path)?;
     
-    // Mount proc
-    if let Err(e) = mount(
-        Some("proc"),
-        &proc_path,
-        Some("proc"),
-        MsFlags::MS_NOSUID | MsFlags::MS_NOEXEC | MsFlags::MS_NODEV,
-        None::<&Path>,
-    ) {
-        error!("Failed to mount /proc: {}", e);
-        return Err(e.into());
-    }
-    info!("Mounted /proc");
+    // Mount proc - requires PID namespace, so we skip it for now
+    // TODO(task/021): Add PID namespace support
+    warn!("Skipping /proc mount (requires PID namespace)");
     
-    // Mount sysfs
-    if let Err(e) = mount(
-        Some("sysfs"),
-        &sys_path,
-        Some("sysfs"),
-        MsFlags::MS_NOSUID | MsFlags::MS_NOEXEC | MsFlags::MS_NODEV | MsFlags::MS_RDONLY,
-        None::<&Path>,
-    ) {
-        error!("Failed to mount /sys: {}", e);
-        return Err(e.into());
-    }
-    info!("Mounted /sys");
+    // Mount sysfs - may also fail without proper namespace
+    warn!("Skipping /sys mount (may require additional namespaces)");
     
-    // Bind mount /dev (with limited subset)
+    // Mount tmpfs on /dev
     if let Err(e) = mount_tmpfs(&dev_path) {
-        error!("Failed to mount tmpfs on /dev: {}", e);
-        return Err(e);
+        warn!("Failed to mount tmpfs on /dev: {}", e);
+    } else {
+        info!("Mounted tmpfs on /dev");
     }
-    info!("Mounted tmpfs on /dev");
     
     // Mount tmpfs on /tmp
     if let Err(e) = mount_tmpfs(&tmp_path) {
-        error!("Failed to mount tmpfs on /tmp: {}", e);
-        return Err(e);
+        warn!("Failed to mount tmpfs on /tmp: {}", e);
+    } else {
+        info!("Mounted tmpfs on /tmp");
     }
-    info!("Mounted tmpfs on /tmp");
     
     Ok(())
 }
 
-pub fn setup_uid_gid_mapping() -> Result<()> {
+pub fn setup_uid_gid_mapping(uid: u32, gid: u32) -> Result<()> {
     use std::fs;
     use tracing::info;
-    
-    let uid = unsafe { libc::getuid() };
-    let gid = unsafe { libc::getgid() };
     
     info!("Setting up uid/gid mapping for uid={}, gid={}", uid, gid);
     
