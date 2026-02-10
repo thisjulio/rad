@@ -6,6 +6,8 @@ use std::os::unix::io::AsRawFd;
 use nix::libc;
 use std::ffi::CString;
 
+pub mod doctor;
+
 pub struct SandboxConfig {
     pub rootfs: std::path::PathBuf,
 }
