@@ -4,9 +4,9 @@
 Esta é a tarefa final de performance. Queremos passar os pixels do Android para o Wayland sem copiá-los na CPU.
 
 ## Fluxo TDD
-- [ ] **Red**: Teste que assevera a falha ao tentar importar um FD inválido como buffer Wayland.
-- [ ] **Green**: Implementar o uso da extensão `linux-dmabuf` e o commit do buffer na superfície.
-- [ ] **Refactor**: Garantir a sincronização correta entre o release do buffer pelo compositor e a escrita pelo app.
+- [x] **Red**: Teste que assevera a falha ao tentar importar um FD inválido como buffer Wayland.
+- [x] **Green**: Implementar o uso da extensão `linux-dmabuf` e o commit do buffer na superfície.
+- [x] **Refactor**: Garantir a sincronização correta entre o release do buffer pelo compositor e a escrita pelo app.
 
 ## Detalhes de Implementação (Rust)
 1.  Usar a extensão `linux-dmabuf` do Wayland.

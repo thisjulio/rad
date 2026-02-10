@@ -1,12 +1,17 @@
 [package]
 name = "wayland"
-version = "0.1.0"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
 
 [dependencies]
-thiserror = { workspace = true }
-anyhow = { workspace = true }
-nix = { workspace = true }
-rustix = { workspace = true }
-tokio = { workspace = true }
-tracing = { workspace = true }
+thiserror.workspace = true
+anyhow.workspace = true
+nix.workspace = true
+rustix.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+
+wayland-client = "0.29"
+wayland-protocols = "0.29"
