@@ -1,11 +1,27 @@
 use std::path::{Path, PathBuf};
 use anyhow::Result;
 use std::fs;
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 use sandbox;
 use apk::{ApkInfo, ApkInspector, Abi};
 use tracing::info;
 use nix::unistd::{fork, ForkResult};
 use nix::sys::wait::{waitpid, WaitStatus};
+
+const DEFAULT_PREFIX_DIRS: &[&str] = &[
+    "root",
+    "system",
+    "data",
+    "data/app",
+    "data/data",
+    "dev",
+    "proc",
+    "sys",
+    "tmp",
+    "apex",
+    "logs",
+];
 
 pub struct Prefix {
     pub root: PathBuf,
@@ -19,26 +35,13 @@ impl Prefix {
     }
 
     pub fn initialize(&self) -> Result<()> {
-        let dirs = [
-            "system",
-            "data",
-            "data/app",
-            "data/data",
-            "dev",
-            "proc",
-            "sys",
-            "tmp",
-            "apex",
-            "logs",
-        ];
+        self.initialize_with_layout(DEFAULT_PREFIX_DIRS)
+    }
 
+    pub fn initialize_with_layout<S: AsRef<str>>(&self, dirs: &[S]) -> Result<()> {
         for dir in dirs {
-            let path = self.root.join(dir);
-            if !path.exists() {
-                fs::create_dir_all(&path)?;
-            }
+            self.ensure_directory(dir.as_ref())?;
         }
-
         Ok(())
     }
 
@@ -198,14 +201,81 @@ impl Prefix {
             "no shell executable found in payload runtime or host"
         ))
     }
+
+    fn ensure_directory(&self, relative_path: &str) -> Result<()> {
+        let path = self.root.join(relative_path);
+
+        if path.exists() {
+            if !path.is_dir() {
+                return Err(anyhow::anyhow!(
+                    "prefix path is not a directory: {}",
+                    path.display()
+                ));
+            }
+        } else {
+            fs::create_dir_all(&path)?;
+        }
+
+        self.ensure_permissions_0755(&path)?;
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    fn ensure_permissions_0755(&self, path: &Path) -> Result<()> {
+        let mode = fs::metadata(path)?.permissions().mode() & 0o777;
+        if mode != 0o755 {
+            let permissions = fs::Permissions::from_mode(0o755);
+            fs::set_permissions(path, permissions)?;
+        }
+        Ok(())
+    }
+
+    #[cfg(not(unix))]
+    fn ensure_permissions_0755(&self, _path: &Path) -> Result<()> {
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::Prefix;
     use std::fs;
+    #[cfg(unix)]
+    use std::os::unix::fs::PermissionsExt;
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn initialize_supports_configurable_layout() {
+        let root = make_temp_prefix_root("configurable-layout");
+        let prefix = Prefix::new(&root);
+
+        prefix
+            .initialize_with_layout(&["root", "data", "cache"])
+            .unwrap();
+
+        assert!(root.join("root").is_dir());
+        assert!(root.join("data").is_dir());
+        assert!(root.join("cache").is_dir());
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn initialize_sets_0755_permissions() {
+        let root = make_temp_prefix_root("permissions");
+        let prefix = Prefix::new(&root);
+
+        prefix
+            .initialize_with_layout(&["root", "data"])
+            .unwrap();
+
+        let mode = fs::metadata(root.join("data")).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode, 0o755);
+
+        let _ = fs::remove_dir_all(root);
+    }
 
     #[test]
     fn shell_prefers_runtime_sh_when_available() {
