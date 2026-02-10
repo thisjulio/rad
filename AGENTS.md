@@ -95,6 +95,24 @@ cd /home/thisjulio/Desktop/projects/rad/WORKTREE_NAME
 
 Para garantir que múltiplos agentes (ou você e eu) saibam o progresso sem ferramentas externas, **seguimos GitFlow estritamente**:
 
+### ⚡ Workflow Automático (Importante!)
+
+**O agente DEVE executar automaticamente o seguinte ao completar cada task:**
+
+1. ✅ Rodar testes: `cargo test && cargo clippy`
+2. ✅ Atualizar arquivo da task marcando checkboxes `[x]`
+3. ✅ Commit e push da task branch: `git push origin task/NNN-slug`
+4. ✅ **Merge automático para main**:
+   - Navegar para worktree main: `cd /home/thisjulio/Desktop/projects/rad/main`
+   - Pull: `git pull origin main`
+   - Merge: `git merge task/NNN-slug --no-ff`
+   - Validar: `cargo test`
+   - Push: `git push origin main`
+
+**NÃO perguntar ao usuário se deve fazer merge/push - executar automaticamente!**
+
+---
+
 ### Fluxo de Trabalho (GitFlow)
 
 1. **Saber "Onde Estamos"**:
@@ -119,16 +137,31 @@ Para garantir que múltiplos agentes (ou você e eu) saibam o progresso sem ferr
    - **Commit**: Seguir o padrão: `task(NNN): descrição curta do que foi feito`.
    - Commits incrementais são encorajados (não esperar tarefa completa para commitar).
 
-5. **Finalização de Tarefa**:
+5. **Finalização de Tarefa** (AUTOMÁTICO - executar sempre ao completar uma task):
    - O agente deve rodar os testes/check de qualidade: `cargo test && cargo clippy`.
    - Atualizar o arquivo da tarefa marcando as checkboxes `[x]`.
-   - **Merge para main**: 
+   - **Push da task branch** (sempre fazer antes do merge):
      ```bash
-     git checkout main
+     git push origin task/NNN-slug
+     ```
+   - **Merge para main** (executar AUTOMATICAMENTE após testes passarem): 
+     ```bash
+     cd /home/thisjulio/Desktop/projects/rad/main  # Navegar para worktree main
      git pull origin main  # CRÍTICO: garantir que main está atualizado
-     git merge task/NNN-slug --no-ff  # Preservar histórico da branch
+     git merge task/NNN-slug --no-ff -m "Merge task/NNN-slug: [descrição]"
      ```
    - Se houver conflitos: resolver, testar novamente, e commitar merge.
+   - **Validar após merge**:
+     ```bash
+     cargo test  # Garantir que merge não quebrou nada
+     ```
+   - **Push para remoto** (OBRIGATÓRIO - sempre executar):
+     ```bash
+     git fetch origin
+     git status  # Verificar se não divergiu
+     git push origin main
+     ```
+   - ⚠️ **IMPORTANTE**: O agente DEVE executar merge + push AUTOMATICAMENTE ao finalizar cada task, sem perguntar ao usuário.
 
 6. **Sincronização com Remoto (OBRIGATÓRIO)**:
    - Após merge bem-sucedido, **SEMPRE** fazer push:
@@ -175,7 +208,9 @@ Para garantir que múltiplos agentes (ou você e eu) saibam o progresso sem ferr
 
 - ✅ **SEMPRE** `git pull origin main` antes de criar task branch.
 - ✅ **SEMPRE** `git pull origin main` antes de merge final.
-- ✅ **SEMPRE** `git push origin main` após merge bem-sucedido.
+- ✅ **SEMPRE** `cargo test` após merge para validar.
+- ✅ **SEMPRE** `git push origin main` após merge bem-sucedido (AUTOMÁTICO).
+- ✅ **SEMPRE** executar merge + push ao finalizar task (SEM perguntar ao usuário).
 - ✅ **SEMPRE** verificar `git status` antes de push.
 - ✅ **SEMPRE** testar (`cargo test`) após merge/rebase/pull.
 - ❌ **NUNCA** commitar direto em `main` (usar task branches).
