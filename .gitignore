@@ -1,1 +1,7 @@
 /target
+/prefixes
+*.apk.bak
+/test_assets
+.DS_Store
+*.swp
+*~
