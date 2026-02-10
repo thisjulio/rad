@@ -85,9 +85,13 @@ fn main() -> Result<()> {
                 std::process::exit(1);
             }
 
-            println!("\n🚀 Launching sandbox...");
-            // We run /system/bin/init inside the chroot
-            if let Err(e) = prefix.run_in_sandbox(&payload_path, "/system/bin/init", &[], true) {
+            println!("\n🚀 Launching zygote-light runtime...");
+            if let Err(e) = prefix.launch_zygote_light(
+                &payload_path,
+                "com.android.internal.os.RuntimeInit",
+                &[],
+                true,
+            ) {
                 eprintln!("❌ Sandbox failure: {}", e);
             } else {
                 println!("✨ Sandbox session finished.");

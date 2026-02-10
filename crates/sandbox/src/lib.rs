@@ -162,6 +162,24 @@ pub fn exec<P: AsRef<Path>>(path: P, args: &[String]) -> Result<()> {
     Err(anyhow::anyhow!("execv failed"))
 }
 
+pub fn exec_with_env<P: AsRef<Path>>(path: P, args: &[String], env: &[(String, String)]) -> Result<()> {
+    let path_c = CString::new(path.as_ref().to_str().unwrap())?;
+    let args_c: Vec<CString> = args
+        .iter()
+        .map(|s| CString::new(s.as_str()).unwrap())
+        .collect();
+    let env_c: Vec<CString> = env
+        .iter()
+        .map(|(k, v)| CString::new(format!("{k}={v}")).unwrap())
+        .collect();
+
+    let args_ref: Vec<&std::ffi::CStr> = args_c.iter().map(|s| s.as_c_str()).collect();
+    let env_ref: Vec<&std::ffi::CStr> = env_c.iter().map(|s| s.as_c_str()).collect();
+
+    nix::unistd::execve(&path_c, &args_ref, &env_ref)?;
+    Err(anyhow::anyhow!("execve failed"))
+}
+
 pub struct BinderfsStatus {
     pub kernel_support: bool,
     pub control_exists: bool,

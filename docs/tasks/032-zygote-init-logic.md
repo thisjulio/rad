@@ -4,9 +4,9 @@
 No Android real, o Zygote pré-carrega todas as classes Java. No nosso runner, faremos um "Zygote-light" que inicializa a ART e carrega o mínimo para rodar a Activity do App.
 
 ## Fluxo TDD
-- [ ] **Red**: Teste que tenta lançar um processo com variáveis de ambiente mínimas e falha ao não encontrar o executável alvo ou libs.
-- [ ] **Green**: Implementar a montagem do ambiente (env vars) e a chamada de execução do `app_process`.
-- [ ] **Refactor**: Centralizar as variáveis de ambiente em um módulo de configuração.
+- [x] **Red**: Teste que tenta lançar um processo com variáveis de ambiente mínimas e falha ao não encontrar o executável alvo ou libs.
+- [x] **Green**: Implementar a montagem do ambiente (env vars) e a chamada de execução do `app_process`.
+- [x] **Refactor**: Centralizar as variáveis de ambiente em um módulo de configuração.
 
 ## Detalhes de Implementação (Rust)
 1.  Configurar variáveis de ambiente críticas:
