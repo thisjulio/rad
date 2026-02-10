@@ -911,6 +911,7 @@ dependencies = [
  "apk",
  "clap",
  "core",
+ "nix 0.27.1",
  "sandbox",
  "thiserror",
  "tokio",
